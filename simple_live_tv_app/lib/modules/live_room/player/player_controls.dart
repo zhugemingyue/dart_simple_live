@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:get/get.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:ns_danmaku/ns_danmaku.dart';
 import 'package:simple_live_tv_app/app/app_focus_node.dart';
 import 'package:simple_live_tv_app/app/app_style.dart';
@@ -16,43 +15,71 @@ import 'package:simple_live_tv_app/widgets/settings_item_widget.dart';
 import 'package:simple_live_tv_app/widgets/status/app_empty_widget.dart';
 
 Widget playerControls(
-  VideoState videoState,
   LiveRoomController controller,
 ) {
   return buildControls(
-    videoState,
     controller,
   );
 }
 
 Widget buildControls(
-  VideoState videoState,
   LiveRoomController controller,
 ) {
   return Stack(
     children: [
       Container(),
-      buildDanmuView(videoState, controller),
+      buildDanmuView(controller),
 
-      Center(
-        child: // 中间
-            StreamBuilder(
-          stream: videoState.widget.controller.player.stream.buffering,
-          initialData: videoState.widget.controller.player.state.buffering,
-          builder: (_, s) => Visibility(
-            visible: s.data ?? false,
-            child: SizedBox(
-              width: 64.w,
-              height: 64.w,
-              child: CircularProgressIndicator(
-                strokeWidth: 8.w,
-                color: Colors.white,
-              ),
+      // 中间
+      Obx(
+        () => Visibility(
+          visible: controller.bufferingState.value,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 64.w,
+                  height: 64.w,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 8.w,
+                    color: Colors.white,
+                  ),
+                ),
+                AppStyle.vGap16,
+                Text(
+                  controller.bufferingText.value,
+                  style: AppStyle.textStyleWhite,
+                ),
+              ],
             ),
           ),
         ),
       ),
-
+      Positioned.fill(
+        child: GestureDetector(
+          onTap: () {
+            showPlayerSettings(controller);
+          },
+          child: Container(
+            width: double.infinity,
+            height: double.infinity,
+            color: Colors.transparent,
+          ),
+        ),
+      ),
+      Obx(
+        () => Visibility(
+          visible:
+              !controller.liveStatus.value && !controller.pageLoadding.value,
+          child: Center(
+            child: Text(
+              "未开播",
+              style: AppStyle.textStyleWhite,
+            ),
+          ),
+        ),
+      ),
       // 顶部
       Obx(
         () => AnimatedPositioned(
@@ -239,8 +266,7 @@ Widget buildControls(
   );
 }
 
-Widget buildDanmuView(VideoState videoState, LiveRoomController controller) {
-  var padding = MediaQuery.of(videoState.context).padding;
+Widget buildDanmuView(LiveRoomController controller) {
   controller.danmakuView ??= DanmakuView(
     key: controller.globalDanmuKey,
     createdController: controller.initDanmakuController,
@@ -249,8 +275,8 @@ Widget buildDanmuView(VideoState videoState, LiveRoomController controller) {
     ),
   );
   return Positioned.fill(
-    top: padding.top,
-    bottom: padding.bottom,
+    top: 0,
+    bottom: 0,
     child: Obx(
       () => Offstage(
         offstage: !controller.showDanmakuState.value,
@@ -495,8 +521,6 @@ void showPlayerSettings(LiveRoomController controller) {
                     0: "适应",
                     1: "拉伸",
                     2: "铺满",
-                    3: "16:9",
-                    4: "4:3",
                   },
                   value: AppSettingsController.instance.scaleMode.value,
                   onChanged: (e) {

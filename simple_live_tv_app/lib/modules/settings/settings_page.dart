@@ -165,8 +165,6 @@ class SettingsPage extends GetView<SettingsController> {
               0: "适应",
               1: "拉伸",
               2: "铺满",
-              3: "16:9",
-              4: "4:3",
             },
             value: AppSettingsController.instance.scaleMode.value,
             onChanged: (e) {

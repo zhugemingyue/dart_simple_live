@@ -1,45 +1,22 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_aliplayer/flutter_aliplayer.dart';
+import 'package:flutter_aliplayer/flutter_aliplayer_factory.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:simple_live_tv_app/app/controller/base_controller.dart';
 import 'package:get/get.dart';
-import 'package:media_kit/media_kit.dart';
-import 'package:media_kit_video/media_kit_video.dart';
 import 'package:ns_danmaku/ns_danmaku.dart';
 import 'package:simple_live_tv_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_tv_app/app/log.dart';
 
 mixin PlayerMixin {
-  GlobalKey<VideoState> globalPlayerKey = GlobalKey<VideoState>();
+  GlobalKey globalPlayerKey = GlobalKey();
   GlobalKey globalDanmuKey = GlobalKey();
 
   /// 播放器实例
-  late final player = Player(
-    configuration: const PlayerConfiguration(
-      title: "Simple Live Player",
-      // bufferSize:
-      //     // media-kit #549
-      //     AppSettingsController.instance.playerBufferSize.value * 1024 * 1024,
-    ),
-  );
-
-  /// 视频控制器
-  late final videoController = VideoController(
-    player,
-    configuration: AppSettingsController.instance.playerCompatMode.value
-        ? const VideoControllerConfiguration(
-            vo: 'mediacodec_embed',
-            hwdec: 'mediacodec',
-          )
-        : VideoControllerConfiguration(
-            enableHardwareAcceleration:
-                AppSettingsController.instance.hardwareDecode.value,
-            androidAttachSurfaceAfterVideoParameters: false,
-          ),
-  );
+  late final player = FlutterAliPlayerFactory.createAliPlayer();
 }
 mixin PlayerStateMixin on PlayerMixin {
   /// 是否显示弹幕
@@ -78,6 +55,13 @@ mixin PlayerStateMixin on PlayerMixin {
   /// 自动隐藏提示计时器
   Timer? hideSeekTipTimer;
 
+  /// 缓冲中
+  RxBool bufferingState = false.obs;
+
+  /// 缓冲信息
+  RxString bufferingText = "缓冲中...".obs;
+
+  /// 弹幕视图
   Widget? danmakuView;
 
   var showQualites = false.obs;
@@ -117,30 +101,18 @@ mixin PlayerStateMixin on PlayerMixin {
     );
   }
 
-  void updateScaleMode() {
-    var boxFit = BoxFit.contain;
-    double? aspectRatio;
-    if (player.state.width != null && player.state.height != null) {
-      aspectRatio = player.state.width! / player.state.height!;
-    }
+  void updateScaleMode() async {
+    var mode = FlutterAvpdef.AVP_SCALINGMODE_SCALEASPECTFIT;
 
-    if (AppSettingsController.instance.scaleMode.value == 0) {
-      boxFit = BoxFit.contain;
-    } else if (AppSettingsController.instance.scaleMode.value == 1) {
-      boxFit = BoxFit.fill;
-    } else if (AppSettingsController.instance.scaleMode.value == 2) {
-      boxFit = BoxFit.cover;
-    } else if (AppSettingsController.instance.scaleMode.value == 3) {
-      boxFit = BoxFit.contain;
-      aspectRatio = 16 / 9;
-    } else if (AppSettingsController.instance.scaleMode.value == 4) {
-      boxFit = BoxFit.contain;
-      aspectRatio = 4 / 3;
+    int scaleMode = AppSettingsController.instance.scaleMode.value;
+    if (scaleMode == 0) {
+      mode = FlutterAvpdef.AVP_SCALINGMODE_SCALEASPECTFIT;
+    } else if (scaleMode == 1) {
+      mode = FlutterAvpdef.AVP_SCALINGMODE_SCALETOFILL;
+    } else if (scaleMode == 2) {
+      mode = FlutterAvpdef.AVP_SCALINGMODE_SCALEASPECTFILL;
     }
-    globalPlayerKey.currentState?.update(
-      aspectRatio: aspectRatio,
-      fit: boxFit,
-    );
+    await player.setScalingMode(mode);
   }
 }
 mixin PlayerDanmakuMixin on PlayerStateMixin {
@@ -184,18 +156,6 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     // 开始隐藏计时
     resetHideControlsTimer();
   }
-
-  /// 是否是IOS16以下
-  Future<bool> beforeIOS16() async {
-    if (Platform.isIOS) {
-      var info = await deviceInfo.iosInfo;
-      var version = info.systemVersion;
-      var versionInt = int.tryParse(version.split('.').first) ?? 0;
-      return versionInt < 16;
-    } else {
-      return false;
-    }
-  }
 }
 
 class PlayerController extends BaseController
@@ -210,65 +170,86 @@ class PlayerController extends BaseController
   var width = 0.obs;
   var height = 0.obs;
 
-  StreamSubscription<String>? _errorSubscription;
-  StreamSubscription? _completedSubscription;
-  StreamSubscription? _widthSubscription;
-  StreamSubscription? _heightSubscription;
-  StreamSubscription? _logSubscription;
-
   void initStream() {
-    _errorSubscription = player.stream.error.listen((event) {
-      Log.d("播放器错误：$event");
-      if (event.contains('no sound.')) {
-        return;
-      }
-      //SmartDialog.showToast(event);
-      mediaError(event);
+    player.setOnError((errorCode, errorExtra, errorMsg, playerId) {
+      Log.d("播放器错误：$errorCode $errorExtra $errorMsg $playerId");
+
+      mediaError(errorMsg ?? '');
     });
 
-    _completedSubscription = player.stream.completed.listen((event) {
-      if (event) {
-        mediaEnd();
+    player.setOnCompletion((playerId) {
+      mediaEnd();
+    });
+
+    player.setOnInfo((infoCode, extraValue, extraMsg, playerId) {
+      Log.d("播放器信息：$infoCode $extraValue $extraMsg $playerId");
+    });
+
+    player.setOnLoadingStatusListener(
+      loadingBegin: (playerId) {
+        bufferingState.value = true;
+      },
+      loadingProgress: (percent, netSpeed, playerId) {
+        Log.d("缓冲进度：$percent $netSpeed $playerId");
+        bufferingText.value = "$percent%   $netSpeed KB/s";
+      },
+      loadingEnd: (playerId) {
+        bufferingState.value = false;
+      },
+    );
+
+    player.setOnStateChanged((newState, playerId) {
+      switch (newState) {
+        case FlutterAvpdef.AVPStatus_AVPStatusIdle: //空转、闲时、静态
+          Log.d("播放器状态：$newState(空转、闲时、静态) $playerId");
+          break;
+        case FlutterAvpdef.AVPStatus_AVPStatusInitialzed: //初始化完成
+          Log.d("播放器状态：$newState(初始化完成) $playerId");
+          break;
+        case FlutterAvpdef.AVPStatus_AVPStatusPrepared: //准备完成
+          Log.d("播放器状态：$newState(准备完成) $playerId");
+          break;
+        case FlutterAvpdef.AVPStatus_AVPStatusStarted: //正在播放
+          Log.d("播放器状态：$newState(正在播放) $playerId");
+          break;
+        case FlutterAvpdef.AVPStatus_AVPStatusPaused: //播放暂停
+          Log.d("播放器状态：$newState(播放暂停) $playerId");
+          break;
+        case FlutterAvpdef.AVPStatus_AVPStatusStopped: //播放停止
+          Log.d("播放器状态：$newState(播放停止) $playerId");
+          break;
+        case FlutterAvpdef.AVPStatus_AVPStatusCompletion: //播放完成
+          Log.d("播放器状态：$newState(播放完成) $playerId");
+          break;
+        case FlutterAvpdef.AVPStatus_AVPStatusError: //播放错误
+          Log.d("播放器状态：$newState(播放错误) $playerId");
+          break;
+        default:
       }
     });
-    _logSubscription = player.stream.log.listen((event) {
-      Log.d("播放器日志：$event");
+    player.setOnVideoSizeChanged((w, h, rotation, playerId) {
+      Log.d("播放器视频尺寸：$w $h $rotation $playerId");
+      width.value = w;
+      height.value = h;
     });
-    _widthSubscription = player.stream.width.listen((event) {
-      Log.w(
-          'width:$event  W:${(player.state.width)}  H:${(player.state.height)}');
-      width.value = event ?? 0;
-      // isVertical.value =
-      //     (player.state.height ?? 9) > (player.state.width ?? 16);
-    });
-    _heightSubscription = player.stream.height.listen((event) {
-      Log.w(
-          'height:$event  W:${(player.state.width)}  H:${(player.state.height)}');
-      height.value = event ?? 0;
-      // isVertical.value =
-      //     (player.state.height ?? 9) > (player.state.width ?? 16);
-    });
-  }
-
-  void disposeStream() {
-    _errorSubscription?.cancel();
-    _completedSubscription?.cancel();
-    _widthSubscription?.cancel();
-    _heightSubscription?.cancel();
-    _logSubscription?.cancel();
   }
 
   void mediaEnd() {}
 
   void mediaError(String error) {}
 
+  void onCreatedPlayView(viewId) async {
+    await player.setPlayerView(viewId);
+    //updateScaleMode();
+  }
+
   @override
   void onClose() async {
     Log.w("播放器关闭");
-    disposeStream();
+
     disposeDanmakuController();
 
-    await player.dispose();
+    await player.destroy();
     super.onClose();
   }
 }

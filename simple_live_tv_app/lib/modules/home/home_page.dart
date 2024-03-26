@@ -242,7 +242,15 @@ class HomePage extends GetView<HomeController> {
                       ],
                     ),
                   ),
-                )
+                ),
+                HighlightButton(
+                  focusNode: AppFocusNode(),
+                  iconData: Icons.devices,
+                  text: "测试",
+                  onTap: () {
+                    Get.toNamed("/test");
+                  },
+                ),
               ],
             ),
           ),

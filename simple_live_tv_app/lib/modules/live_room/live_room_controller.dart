@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_aliplayer/flutter_aliplayer.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:ns_danmaku/models/danmaku_item.dart';
 import 'package:simple_live_core/simple_live_core.dart';
 import 'package:simple_live_tv_app/app/constant.dart';
@@ -232,28 +232,30 @@ class LiveRoomController extends PlayerController with WidgetsBindingObserver {
   void setPlayer() async {
     currentLineInfo.value = "线路${currentLineIndex + 1}";
     errorMsg.value = "";
-    Map<String, String> headers = {};
+    AVPConfig config = AVPConfig();
+
     if (site.id == Constant.kBiliBili) {
-      headers = {
-        "referer": "https://live.bilibili.com",
-        "user-agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.188"
-      };
+      config.referer = "https://live.bilibili.com";
+      config.userAgent =
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36 Edg/115.0.1901.188";
     } else if (site.id == Constant.kHuya) {
-      headers = {
-        "referer": "https://www.huya.com",
-        "user-agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0"
-      };
+      config.referer = "https://www.huya.com";
+      config.userAgent =
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36 Edg/121.0.0.0";
     }
 
-    player.open(
-      Media(
-        playUrls[currentLineIndex],
-        httpHeaders: headers,
-      ),
-    );
+    // player.open(
+    //   Media(
+    //     playUrls[currentLineIndex],
+    //     httpHeaders: headers,
+    //   ),
+    // );
 
+    await player.setAutoPlay(true);
+    await player.setPlayConfig(config);
+    await player.setUrl(playUrls[currentLineIndex]);
+    await player.prepare();
+    //updateScaleMode();
     Log.d("播放链接\r\n：${playUrls[currentLineIndex]}");
   }
 

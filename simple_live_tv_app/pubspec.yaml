@@ -48,9 +48,10 @@ dependencies:
   device_info_plus: ^9.1.2 #设备信息
   
   # 视频播放
-  media_kit: ^1.1.10+1
-  media_kit_video: ^1.2.4
-  media_kit_libs_video: ^1.0.4
+  # media_kit: ^1.1.10+1
+  # media_kit_video: ^1.2.4
+  # media_kit_libs_video: ^1.0.4
+  flutter_aliplayer: ^6.7.0
 
 dev_dependencies:
   flutter_test:

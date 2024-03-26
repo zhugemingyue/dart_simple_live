@@ -15,6 +15,8 @@ import 'package:simple_live_tv_app/modules/home/home_controller.dart';
 import 'package:simple_live_tv_app/modules/home/home_page.dart';
 import 'package:simple_live_tv_app/modules/hot_live/hot_live_controller.dart';
 import 'package:simple_live_tv_app/modules/hot_live/hot_live_page.dart';
+import 'package:simple_live_tv_app/modules/live_room/aliplayer/aliplayer_controller.dart';
+import 'package:simple_live_tv_app/modules/live_room/aliplayer/aliplayer_page.dart';
 import 'package:simple_live_tv_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_tv_app/modules/live_room/live_room_page.dart';
 import 'package:simple_live_tv_app/modules/search/anchor/search_anchor_controller.dart';
@@ -141,6 +143,16 @@ class AppPages {
           () => SearchAnchorController(
             Get.arguments,
           ),
+        ),
+      ],
+    ),
+    // 测试页面
+    GetPage(
+      name: "/test",
+      page: () => const AliPlayerPage(),
+      bindings: [
+        BindingsBuilder.put(
+          () => AliPlayerControlelr(),
         ),
       ],
     ),

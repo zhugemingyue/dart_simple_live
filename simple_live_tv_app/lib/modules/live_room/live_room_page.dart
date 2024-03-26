@@ -1,12 +1,12 @@
 import 'dart:async';
 
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_aliplayer/flutter_aliplayer.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
-import 'package:media_kit_video/media_kit_video.dart';
-import 'package:simple_live_tv_app/app/app_style.dart';
-import 'package:simple_live_tv_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_tv_app/app/log.dart';
 import 'package:simple_live_tv_app/modules/live_room/live_room_controller.dart';
 import 'package:simple_live_tv_app/modules/live_room/player/player_controls.dart';
@@ -40,9 +40,7 @@ class LiveRoomPage extends GetView<LiveRoomController> {
         onKeyEvent: onKeyEvent,
         child: Scaffold(
           backgroundColor: Colors.black,
-          body: Obx(
-            () => buildMediaPlayer(),
-          ),
+          body: buildMediaPlayer(),
         ),
       ),
     );
@@ -111,48 +109,22 @@ class LiveRoomPage extends GetView<LiveRoomController> {
   }
 
   Widget buildMediaPlayer() {
-    var boxFit = BoxFit.contain;
-    double? aspectRatio;
-    if (AppSettingsController.instance.scaleMode.value == 0) {
-      boxFit = BoxFit.contain;
-    } else if (AppSettingsController.instance.scaleMode.value == 1) {
-      boxFit = BoxFit.fill;
-    } else if (AppSettingsController.instance.scaleMode.value == 2) {
-      boxFit = BoxFit.cover;
-    } else if (AppSettingsController.instance.scaleMode.value == 3) {
-      boxFit = BoxFit.contain;
-      aspectRatio = 16 / 9;
-    } else if (AppSettingsController.instance.scaleMode.value == 4) {
-      boxFit = BoxFit.contain;
-      aspectRatio = 4 / 3;
-    }
     return Stack(
+      fit: StackFit.expand,
       children: [
-        Video(
-          key: controller.globalPlayerKey,
-          controller: controller.videoController,
-          pauseUponEnteringBackgroundMode:
-              AppSettingsController.instance.playerAutoPause.value,
-          resumeUponEnteringForegroundMode:
-              AppSettingsController.instance.playerAutoPause.value,
-          controls: (state) {
-            return playerControls(state, controller);
-          },
-          aspectRatio: aspectRatio,
-          fit: boxFit,
-        ),
-        Obx(
-          () => Visibility(
-            visible:
-                !controller.liveStatus.value && !controller.pageLoadding.value,
-            child: Center(
-              child: Text(
-                "未开播",
-                style: AppStyle.textStyleWhite,
-              ),
-            ),
+        SizedBox(
+          width: Get.width,
+          height: Get.height,
+          child: AliPlayerView(
+            key: controller.globalPlayerKey,
+            x: 0,
+            y: 0,
+            width: Get.width,
+            height: Get.height,
+            onCreated: controller.onCreatedPlayView,
           ),
         ),
+        buildControls(controller),
       ],
     );
   }
