@@ -7,12 +7,12 @@ import 'package:floating/floating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
+import 'package:gal/gal.dart';
 import 'package:get/get.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:ns_danmaku/ns_danmaku.dart';
-import 'package:perfect_volume_control/perfect_volume_control.dart';
+import 'package:flutter_volume_controller/flutter_volume_controller.dart';
 import 'package:screen_brightness/screen_brightness.dart';
 import 'package:simple_live_app/app/controller/app_settings_controller.dart';
 import 'package:simple_live_app/app/controller/base_controller.dart';
@@ -215,7 +215,8 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 初始化一些系统状态
   void initSystem() async {
     if (Platform.isAndroid || Platform.isIOS) {
-      PerfectVolumeControl.hideUI = true;
+      //PerfectVolumeControl.hideUI = true;
+      FlutterVolumeController.updateShowSystemUI(false);
     }
 
     // 屏幕常亮
@@ -233,7 +234,7 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
   /// 释放一些系统状态
   Future resetSystem() async {
     _pipSubscription?.cancel();
-    pip.dispose();
+    //pip.cancelOnLeavePiP();
     await SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.edgeToEdge,
       overlays: SystemUiOverlay.values,
@@ -378,9 +379,14 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
       }
 
       if (Platform.isIOS || Platform.isAndroid) {
-        await ImageGallerySaver.saveImage(
-          imageData,
-        );
+        // await ImageGallerySaver.saveImage(
+        //   imageData,
+        // );
+        final hasAccess = await Gal.hasAccess(toAlbum: true);
+        if (!hasAccess && !await Gal.requestAccess(toAlbum: true)) {
+          return;
+        }
+        await Gal.putImageBytes(imageData);
         SmartDialog.showToast("已保存截图至相册");
       } else {
         //选择保存文件夹
@@ -436,11 +442,11 @@ mixin PlayerSystemMixin on PlayerMixin, PlayerStateMixin, PlayerDanmakuMixin {
     } else {
       ratio = const Rational.landscape();
     }
-    await pip.enable(
+    await pip.enable(ImmediatePiP(
       aspectRatio: ratio,
-    );
+    ));
 
-    _pipSubscription ??= pip.pipStatus$.listen((event) {
+    _pipSubscription ??= pip.pipStatusStream.listen((event) {
       if (event == PiPStatus.disabled) {
         danmakuController?.clear();
         showDanmakuState.value = danmakuStateBeforePIP;
@@ -524,7 +530,7 @@ mixin PlayerGestureControlMixin
     verticalDragging = true;
     showGestureTip.value = true;
     if (Platform.isAndroid || Platform.isIOS) {
-      _currentVolume = await PerfectVolumeControl.volume;
+      _currentVolume = await FlutterVolumeController.getVolume() ?? 1.0;
     }
     if (Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
       _currentBrightness = await screenBrightness.current;
@@ -588,7 +594,7 @@ mixin PlayerGestureControlMixin
 
   Future<void> _realSetVolume(int volume) async {
     Log.logPrint(volume);
-    return await PerfectVolumeControl.setVolume(volume / 100);
+    return await FlutterVolumeController.setVolume(volume / 100);
   }
 
   void setGestureBrightness(double dy) {

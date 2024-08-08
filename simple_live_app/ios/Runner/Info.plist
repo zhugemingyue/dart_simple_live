@@ -52,8 +52,6 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>FLTEnableImpeller</key>
-  	<false />
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>audio</string>
