@@ -188,7 +188,7 @@ jobs:
       # 设置flutter_distributor环境
       - name: Install flutter_distributor
         run: dart pub global activate flutter_distributor
-      # build Linux ZIP
+      # build Linux package
       - name: Build Linux
         run: |
           cd simple_live_app
