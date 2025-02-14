@@ -34,7 +34,6 @@ modules:
       - install -Dm644 com.xycz.simple_live.desktop "${FLATPAK_DEST}/share/applications/${FLATPAK_ID}.desktop"
       - install -Dm644 com.xycz.simple_live.metainfo.xml "${FLATPAK_DEST}/share/metainfo/${FLATPAK_ID}.metainfo.xml"
       - install -Dm644 com.xycz.simple_live_512.png "${FLATPAK_DEST}/share/icons/hicolor/512x512/apps/${FLATPAK_ID}.png"
-      - install -Dm644 com.xycz.simple_live_1024.png "${FLATPAK_DEST}/share/icons/hicolor/1024x1024/apps/${FLATPAK_ID}.png"
     sources:
       - type: archive
         only-arches: [x86_64]
@@ -48,12 +47,8 @@ modules:
         path: com.xycz.simple_live.desktop
       - type: file
         dest-filename: com.xycz.simple_live_512.png
-        url: https://raw.githubusercontent.com/xiaoyaocz/dart_simple_live/refs/tags/v1.7.6/simple_live_app/assets/logo_circle.png
+        url: https://raw.githubusercontent.com/s-kk/dart_simple_live/692380b8c44ccaeafb2f9697b224e2617f6abe64/simple_live_app/assets/logo_circle_512.png
         sha256: d9b4c02f2c0efe6485f6071050fae255b8074aa170950ecc90e74c9514c69f13
-      - type: file
-        dest-filename: com.xycz.simple_live_1024.png
-        url: https://raw.githubusercontent.com/xiaoyaocz/dart_simple_live/refs/tags/v1.7.6/simple_live_app/assets/logo_circle.png
-        sha256: af5f8b6d326058fdcf86d4836518b02049bda2e233a98a6328df1e0946ec83cf
     modules:
       - name: libmpv
         cleanup:
