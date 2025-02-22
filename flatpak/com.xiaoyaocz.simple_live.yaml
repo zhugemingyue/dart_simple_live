@@ -51,12 +51,22 @@ modules:
         # Link needs to be replaced when this is upstreamed
         url: https://github.com/s-kk/dart_simple_live/releases/download/v1.7.6/simple_live_app-1.7.5+10705-linux-ubuntu-24.04.zip
         sha256: 44bb5878d5490099dd46eb2f5c6a50cdb2ab632c06399cfbf0681839c74890d5
+        x-checker-data:
+          type: json
+          url: https://api.github.com/repos/s-kk/dart_simple_live/releases/latest
+          version-query: '.tag_name | sub(\"v\";\"\")'
+          url-query: '.assets[] | select(.name | match("simple_live_app-.*ubuntu-24.04-arm\\.zip")) | .browser_download_url'
       - type: archive
         only-arches: [aarch64]
         strip-components: 0
         # Link needs to be replaced when this is upstreamed
         url: https://github.com/s-kk/dart_simple_live/releases/download/v1.7.6/simple_live_app-1.7.5+10705-linux-ubuntu-24.04-arm.zip
         sha256: 98cba197ad0b72e34743016887fc07120f7957c772ef4f7107c878a5eff75bcf
+        x-checker-data:
+          type: json
+          url: https://api.github.com/repos/s-kk/dart_simple_live/releases/latest
+          version-query: '.tag_name | sub(\"v\";\"\")'
+          url-query: '.assets[] | select(.name | match("simple_live_app-.*ubuntu-24.04\\.zip")) | .browser_download_url'
       - type: file
         path: com.xiaoyaocz.simple_live.metainfo.xml
       - type: file
@@ -91,25 +101,6 @@ modules:
               is-important: true
 
         modules:
-          - name: libv4l2
-            buildsystem: meson
-            cleanup:
-              - /sbin
-              - /bin
-            config-opts:
-              - -Dbpf=disabled
-              - -Dudevdir=/app/lib/udev
-              - -Dsystemdsystemunitdir=/dev/null
-            sources:
-              - type: archive
-                url: https://linuxtv.org/downloads/v4l-utils/v4l-utils-1.28.1.tar.xz
-                sha256: 0fa075ce59b6618847af6ea191b6155565ccaa44de0504581ddfed795a328a82
-                x-checker-data:
-                  type: anitya
-                  project-id: 9998
-                  stable-only: true
-                  url-template: https://linuxtv.org/downloads/v4l-utils/v4l-utils-$version.tar.xz
-
           - name: nv-codec-headers
             cleanup:
               - '*'
