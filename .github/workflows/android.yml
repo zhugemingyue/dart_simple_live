@@ -1,4 +1,4 @@
-name: app-build-action-dev
+name: test
 
 on:
   workflow_dispatch:
