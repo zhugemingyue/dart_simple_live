@@ -6,6 +6,17 @@ allprojects {
 }
 
 rootProject.buildDir = "../build"
+
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn(":app")
+}
+
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
+}
 // 添加到 android/build.gradle 的最末尾
 subprojects {
     configurations.all {
@@ -17,14 +28,4 @@ subprojects {
             force "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
         }
     }
-}
-subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(":app")
-}
-
-tasks.register("clean", Delete) {
-    delete rootProject.buildDir
 }
